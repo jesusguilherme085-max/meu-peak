@@ -2,92 +2,55 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PEAK - Boneco Climb</title>
-<style>
- body{margin:0;background:#87ceeb;overflow:hidden;font-family:Arial;touch-action:none}
- canvas{display:block;width:100%;height:100vh}
- #ui{position:absolute;top:10px;left:10px;color:#fff;text-shadow:1px 1px 3px #000}
- #bar{width:180px;height:14px;background:#222;border-radius:10px;overflow:hidden;border:2px solid #fff}
- #fill{height:100%;width:100%;background:linear-gradient(90deg,#4caf50,#cddc39)}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>PEAK 360 - Boneco Real</title>
+<style>body{margin:0;overflow:hidden;background:#000}canvas{display:block}#ui{position:absolute;top:10px;left:10px;color:#fff;font-family:Arial;text-shadow:1px 1px 2px #000}#bar{width:200px;height:12px;background:#333;border-radius:6px;border:1px solid #fff;overflow:hidden}#fill{height:100%;width:100%;background:#4caf50}</style>
+<script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 </head>
 <body>
-<div id="ui">
- <div>🏔️ <span id="alt">0</span>m</div>
- <div id="bar"><div id="fill"></div></div>
-</div>
-<canvas id="c"></canvas>
-<script>
-const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
-function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight}
-resize(); window.onresize=resize;
-let W=()=>canvas.width,H=()=>canvas.height;
-let stamina=100, score=0, camY=0, fogY=800, gameOver=false;
-let player={x:200,y:600,vx:0,vy:0,onHold:true,armX:0,armY:0};
-let holds=[];
-for(let i=0;i<100;i++){ holds.push({x:80+Math.random()*(W()-160), y:600-i*70-Math.random()*30, r:20+Math.random()*14}) }
-holds.push({x:200,y:650,r:35}); holds.push({x:W()/2,y:-6500,r:50});
-
-function getHold(mx,my){
- let best=null,dmin=150;
- for(let h of holds){ let d=Math.hypot(h.x-mx,h.y-my); if(d<dmin){dmin=d;best=h} }
- return best;
+<div id="ui"><div id="alt">0m</div><div id="bar"><div id="fill"></div></div><small>arrasta pra girar 360 • toca na pedra pra escalar</small></div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x87ceeb); scene.fog=new THREE.Fog(0x87ceeb, 30, 90);
+const cam=new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 200); cam.position.set(0,5,12);
+const ren=new THREE.WebGLRenderer({antialias:true}); ren.setSize(innerWidth,innerHeight); document.body.appendChild(ren.domElement);
+const controls=new OrbitControls(cam, ren.domElement); controls.enablePan=false; controls.minDistance=3; controls.maxDistance=15; controls.target.set(0,5,0);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
+const dir=new THREE.DirectionalLight(0xffffff,0.8); dir.position.set(5,10,5); scene.add(dir);
+// chão/montanha
+const mountain=new THREE.Mesh(new THREE.BoxGeometry(40,80,40), new THREE.MeshStandardMaterial({color:0x8d6e63})); mountain.position.set(0,-10,0); scene.add(mountain);
+// boneco real
+const player=new THREE.Group(); scene.add(player);
+const body=new THREE.Mesh(new THREE.CapsuleGeometry(0.3,0.7,4,8), new THREE.MeshStandardMaterial({color:0x3949ab})); body.position.y=1; player.add(body);
+const head=new THREE.Mesh(new THREE.SphereGeometry(0.32,16,16), new THREE.MeshStandardMaterial({color:0xffcc80})); head.position.y=1.7; player.add(head);
+const pack=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.5,0.2), new THREE.MeshStandardMaterial({color:0xffca28})); pack.position.set(0,1,-0.35); player.add(pack);
+const armL=new THREE.Mesh(new THREE.CapsuleGeometry(0.08,0.5,4,8), new THREE.MeshStandardMaterial({color:0xffcc80})); armL.position.set(-0.4,1,0); player.add(armL);
+const armR=armL.clone(); armR.position.x=0.4; player.add(armR);
+player.position.set(0,0,2);
+// holds
+const holds=[]; const holdMat=new THREE.MeshStandardMaterial({color:0x3e2723});
+for(let i=0;i<60;i++){ let m=new THREE.Mesh(new THREE.SphereGeometry(0.3+Math.random()*0.2,10,10), holdMat); m.position.set((Math.random()-0.5)*8, i*1.3+1, (Math.random()-0.5)*8); if(Math.random()>0.5) m.position.z+=5; scene.add(m); holds.push(m); }
+let stamina=100, yMax=0, fogY=-20, ray=new THREE.Raycaster(), mouse=new THREE.Vector2(), targetHold=null;
+function onTap(e){
+ const x=(e.clientX/innerWidth)*2-1; const y=-(e.clientY/innerHeight)*2+1; mouse.set(x,y);
+ ray.setFromCamera(mouse,cam); const hits=ray.intersectObjects(holds);
+ if(!hits.length||stamina<10)return; const h=hits[0].object; if(player.position.distanceTo(h.position)>6)return;
+ targetHold=h.position.clone(); stamina-=12;
 }
-canvas.addEventListener('pointerdown',e=>{
- if(gameOver)return;
- let mx=e.clientX, my=e.clientY+camY;
- let h=getHold(mx,my); if(!h||stamina<8)return;
- let dist=Math.hypot(h.x-player.x,h.y-player.y); if(dist>220)return;
- player.vx=(h.x-player.x)*0.18; player.vy=(h.y-player.y)*0.18-3;
- player.onHold=false; player.armX=h.x; player.armY=h.y; stamina-=10+dist*0.08;
-});
-
+ren.domElement.addEventListener('click',onTap); ren.domElement.addEventListener('touchend',e=>{onTap(e.changedTouches[0])});
 function update(){
- if(gameOver)return;
- if(!player.onHold){ player.vy+=0.4; player.x+=player.vx; player.y+=player.vy; player.vx*=0.97 }
- for(let h of holds){
-   if(Math.hypot(player.x-h.x,player.y-h.y)<h.r+14 && player.vy>0){
-     player.x=h.x; player.y=h.y-28; player.vx=0; player.vy=0; player.onHold=true;
-     if(stamina<100) stamina+=0.7;
-   }
- }
- camY+=(player.y-H()*0.65-camY)*0.06;
- fogY-=0.9; score=Math.max(score, Math.floor((600-player.y)/10));
- document.getElementById('alt').innerText=score;
- document.getElementById('fill').style.width=stamina+'%';
- if(player.y>fogY){end('A NÉVOA TE PEGOU!')} if(player.y<-6450){end('TOPO! VOCÊ ZEROU!')} if(stamina<=0&&!player.onHold){player.vy+=0.3}
+ if(targetHold){ let dir=targetHold.clone().sub(player.position); if(dir.length()<0.15){player.position.copy(targetHold); player.position.z+=0.6; targetHold=null;} else {dir.normalize().multiplyScalar(0.08); player.position.add(dir); controls.target.copy(player.position); controls.target.y+=1;}}
+ player.position.y+=targetHold?-0.02:0; // gravidade simples
+ if(player.position.y>yMax) yMax=player.position.y;
+ stamina=Math.min(100, stamina+(targetHold?0:0.25));
+ fogY+=0.008; document.getElementById('alt').innerText=Math.floor(yMax*2)+'m'; document.getElementById('fill').style.width=stamina+'%';
+ if(player.position.y<fogY){alert('A NÉVOA PEGOU!'); location.reload()}
+ if(player.position.y>78){alert('TOPO! ZEROU O PEAK 360!'); location.reload()}
 }
-function drawBoneco(x,y){
- // mochila
- ctx.fillStyle='#ffca28'; ctx.fillRect(x-8,y-10,16,20);
- // corpo
- ctx.fillStyle='#3949ab'; ctx.fillRect(x-8,y-20,16,24);
- // cabeça
- ctx.fillStyle='#ffcc80'; ctx.beginPath(); ctx.arc(x,y-32,12,0,Math.PI*2); ctx.fill();
- // braços
- ctx.strokeStyle='#ffcc80'; ctx.lineWidth=5; ctx.lineCap='round';
- ctx.beginPath(); ctx.moveTo(x-8,y-18); ctx.lineTo(player.onHold?x-12:player.armX, player.onHold?y-10:player.armY); ctx.stroke();
- ctx.beginPath(); ctx.moveTo(x+8,y-18); ctx.lineTo(player.onHold?x+12:player.armX, player.onHold?y-10:player.armY); ctx.stroke();
- // pernas
- ctx.strokeStyle='#212121'; ctx.lineWidth=6;
- ctx.beginPath(); ctx.moveTo(x-4,y+4); ctx.lineTo(x-10,y+22); ctx.stroke();
- ctx.beginPath(); ctx.moveTo(x+4,y+4); ctx.lineTo(x+10,y+22); ctx.stroke();
-}
-function draw(){
- ctx.clearRect(0,0,W(),H());
- ctx.save(); ctx.translate(0,-camY);
- ctx.fillStyle='#a1887f'; ctx.fillRect(0,-7000,W(),8000);
- holds.forEach(h=>{
-   ctx.fillStyle=h.r>35?'#ffecb3':'#5d4037'; ctx.beginPath(); ctx.arc(h.x,h.y,h.r,0,Math.PI*2); ctx.fill();
-   ctx.fillStyle='rgba(0,0,0,.15)'; ctx.beginPath(); ctx.arc(h.x+3,h.y+3,h.r*0.7,0,Math.PI*2); ctx.fill();
- });
- drawBoneco(player.x,player.y);
- ctx.fillStyle='rgba(220,220,230,0.88)'; ctx.fillRect(0,fogY,W(),5000);
- ctx.restore();
-}
-function end(t){gameOver=true; ctx.fillStyle='rgba(0,0,0,.7)'; ctx.fillRect(0,0,W(),H()); ctx.fillStyle='#fff'; ctx.font='bold 26px Arial'; ctx.textAlign='center'; ctx.fillText(t,W()/2,H()/2); ctx.font='16px Arial'; ctx.fillText('Toque para jogar de novo',W()/2,H()/2+40); canvas.onclick=()=>location.reload()}
-(function loop(){update();draw();requestAnimationFrame(loop)})();
+function loop(){ requestAnimationFrame(loop); update(); controls.update(); ren.render(scene,cam); } loop();
+addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); ren.setSize(innerWidth,innerHeight)});
 </script>
 </body>
 </html>
