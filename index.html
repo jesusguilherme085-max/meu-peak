@@ -2,54 +2,49 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>PEAK 360 - Boneco Real</title>
-<style>body{margin:0;overflow:hidden;background:#000}canvas{display:block}#ui{position:absolute;top:10px;left:10px;color:#fff;font-family:Arial;text-shadow:1px 1px 2px #000}#bar{width:200px;height:12px;background:#333;border-radius:6px;border:1px solid #fff;overflow:hidden}#fill{height:100%;width:100%;background:#4caf50}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PEAK Capivara - Original</title>
+<style>body{margin:0;overflow:hidden;background:#000}canvas{display:block}#ui{position:absolute;top:10px;left:10px;color:#fff;font-family:Arial;font-weight:bold;text-shadow:1px 1px 3px #000}#bar{width:210px;height:14px;background:#222;border-radius:8px;border:2px solid #fff;overflow:hidden}#fill{width:100%;height:100%;background:linear-gradient(90deg,#4caf50,#8bc34a)}</style>
 <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 </head>
 <body>
-<div id="ui"><div id="alt">0m</div><div id="bar"><div id="fill"></div></div><small>arrasta pra girar 360 • toca na pedra pra escalar</small></div>
+<div id="ui"><div>🦫 CAPIVARA PEAK - <span id="alt">0m</span></div><div id="bar"><div id="fill"></div></div><small>360° arrasta pra girar • toca na pedra pra escalar</small></div>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-const scene=new THREE.Scene(); scene.background=new THREE.Color(0x87ceeb); scene.fog=new THREE.Fog(0x87ceeb, 30, 90);
-const cam=new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 200); cam.position.set(0,5,12);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x87ceeb); scene.fog=new THREE.Fog(0x87ceeb,20,60);
+const cam=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,0.1,200); cam.position.set(0,4,10);
 const ren=new THREE.WebGLRenderer({antialias:true}); ren.setSize(innerWidth,innerHeight); document.body.appendChild(ren.domElement);
-const controls=new OrbitControls(cam, ren.domElement); controls.enablePan=false; controls.minDistance=3; controls.maxDistance=15; controls.target.set(0,5,0);
-scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
-const dir=new THREE.DirectionalLight(0xffffff,0.8); dir.position.set(5,10,5); scene.add(dir);
-// chão/montanha
-const mountain=new THREE.Mesh(new THREE.BoxGeometry(40,80,40), new THREE.MeshStandardMaterial({color:0x8d6e63})); mountain.position.set(0,-10,0); scene.add(mountain);
-// boneco real
-const player=new THREE.Group(); scene.add(player);
-const body=new THREE.Mesh(new THREE.CapsuleGeometry(0.3,0.7,4,8), new THREE.MeshStandardMaterial({color:0x3949ab})); body.position.y=1; player.add(body);
-const head=new THREE.Mesh(new THREE.SphereGeometry(0.32,16,16), new THREE.MeshStandardMaterial({color:0xffcc80})); head.position.y=1.7; player.add(head);
-const pack=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.5,0.2), new THREE.MeshStandardMaterial({color:0xffca28})); pack.position.set(0,1,-0.35); player.add(pack);
-const armL=new THREE.Mesh(new THREE.CapsuleGeometry(0.08,0.5,4,8), new THREE.MeshStandardMaterial({color:0xffcc80})); armL.position.set(-0.4,1,0); player.add(armL);
-const armR=armL.clone(); armR.position.x=0.4; player.add(armR);
-player.position.set(0,0,2);
-// holds
-const holds=[]; const holdMat=new THREE.MeshStandardMaterial({color:0x3e2723});
-for(let i=0;i<60;i++){ let m=new THREE.Mesh(new THREE.SphereGeometry(0.3+Math.random()*0.2,10,10), holdMat); m.position.set((Math.random()-0.5)*8, i*1.3+1, (Math.random()-0.5)*8); if(Math.random()>0.5) m.position.z+=5; scene.add(m); holds.push(m); }
-let stamina=100, yMax=0, fogY=-20, ray=new THREE.Raycaster(), mouse=new THREE.Vector2(), targetHold=null;
-function onTap(e){
- const x=(e.clientX/innerWidth)*2-1; const y=-(e.clientY/innerHeight)*2+1; mouse.set(x,y);
- ray.setFromCamera(mouse,cam); const hits=ray.intersectObjects(holds);
- if(!hits.length||stamina<10)return; const h=hits[0].object; if(player.position.distanceTo(h.position)>6)return;
- targetHold=h.position.clone(); stamina-=12;
-}
-ren.domElement.addEventListener('click',onTap); ren.domElement.addEventListener('touchend',e=>{onTap(e.changedTouches[0])});
+const controls=new OrbitControls(cam,ren.domElement); controls.minDistance=2; controls.maxDistance=14; controls.target.set(0,3,0);
+scene.add(new THREE.HemisphereLight(0xffffff,0x444444,1.2));
+const sun=new THREE.DirectionalLight(0xffffff,0.9); sun.position.set(5,12,5); scene.add(sun);
+const ground=new THREE.Mesh(new THREE.BoxGeometry(50,70,50), new THREE.MeshStandardMaterial({color:0x8d6e63})); ground.position.y=-15; scene.add(ground);
+// CAPIVARA - personagem original
+const capivara=new THREE.Group(); scene.add(capivara);
+const body=new THREE.Mesh(new THREE.CapsuleGeometry(0.45,0.8,4,10), new THREE.MeshStandardMaterial({color:0x8D6E63})); body.rotation.z=Math.PI/2; body.position.y=0.9; capivara.add(body);
+const head=new THREE.Mesh(new THREE.SphereGeometry(0.5,16,16), new THREE.MeshStandardMaterial({color:0xA1887F})); head.position.set(0.7,1.2,0); head.scale.set(1.1,0.9,1); capivara.add(head);
+const nose=new THREE.Mesh(new THREE.SphereGeometry(0.15,8,8), new THREE.MeshStandardMaterial({color:0x3e2723})); nose.position.set(1.15,1.15,0); capivara.add(nose);
+const ear1=new THREE.Mesh(new THREE.SphereGeometry(0.12,8,8), new THREE.MeshStandardMaterial({color:0x5D4037})); ear1.position.set(0.6,1.6,0.25); capivara.add(ear1);
+const ear2=ear1.clone(); ear2.position.z=-0.25; capivara.add(ear2);
+const backpack=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.6,0.4), new THREE.MeshStandardMaterial({color:0xFFCA28})); backpack.position.set(-0.3,1.1,0); capivara.add(backpack);
+const goggle=new THREE.Mesh(new THREE.TorusGeometry(0.18,0.04,6,12), new THREE.MeshStandardMaterial({color:0x212121})); goggle.position.set(0.9,1.3,0); goggle.rotation.y=Math.PI/2; capivara.add(goggle);
+const leg1=new THREE.Mesh(new THREE.CapsuleGeometry(0.12,0.4,4,6), new THREE.MeshStandardMaterial({color:0x6D4C41})); leg1.position.set(0.2,0.2,0.2); capivara.add(leg1);
+const leg2=leg1.clone(); leg2.position.z=-0.2; capivara.add(leg2); const leg3=leg1.clone(); leg3.position.x=-0.2; leg3.position.z=0.2; capivara.add(leg3); const leg4=leg1.clone(); leg4.position.x=-0.2; leg4.position.z=-0.2; capivara.add(leg4);
+capivara.position.set(0,0,4);
+// pedras
+const holds=[]; const mat=new THREE.MeshStandardMaterial({color:0x4e342e});
+for(let i=0;i<70;i++){ const h=new THREE.Mesh(new THREE.SphereGeometry(0.35,8,8),mat); h.position.set((Math.random()-0.5)*10, i*1.2+0.5, (Math.random()-0.5)*10); h.position.x*=1.2; scene.add(h); holds.push(h); }
+let stamina=100, best=0, fogY=-20, target=null, ray=new THREE.Raycaster(), mouse=new THREE.Vector2();
+function tap(e){ const x=(e.clientX/innerWidth)*2-1; const y=-(e.clientY/innerHeight)*2+1; mouse.set(x,y); ray.setFromCamera(mouse,cam); const hit=ray.intersectObjects(holds); if(!hit.length||stamina<10)return; const h=hit[0].object; if(capivara.position.distanceTo(h.position)>7)return; target=h.position.clone(); stamina-=11; }
+ren.domElement.addEventListener('click',tap); ren.domElement.addEventListener('touchend',e=>tap(e.changedTouches[0]));
 function update(){
- if(targetHold){ let dir=targetHold.clone().sub(player.position); if(dir.length()<0.15){player.position.copy(targetHold); player.position.z+=0.6; targetHold=null;} else {dir.normalize().multiplyScalar(0.08); player.position.add(dir); controls.target.copy(player.position); controls.target.y+=1;}}
- player.position.y+=targetHold?-0.02:0; // gravidade simples
- if(player.position.y>yMax) yMax=player.position.y;
- stamina=Math.min(100, stamina+(targetHold?0:0.25));
- fogY+=0.008; document.getElementById('alt').innerText=Math.floor(yMax*2)+'m'; document.getElementById('fill').style.width=stamina+'%';
- if(player.position.y<fogY){alert('A NÉVOA PEGOU!'); location.reload()}
- if(player.position.y>78){alert('TOPO! ZEROU O PEAK 360!'); location.reload()}
+ if(target){ const d=target.clone().sub(capivara.position); if(d.length()<0.2){capivara.position.copy(target); capivara.position.z+=0.5; target=null;} else {d.normalize().multiplyScalar(0.09); capivara.position.add(d); controls.target.copy(capivara.position); controls.target.y+=1;} }
+ best=Math.max(best,capivara.position.y); stamina=Math.min(100, stamina+(target?0:0.3)); fogY+=0.01;
+ document.getElementById('alt').innerText=Math.floor(best*3)+'m'; document.getElementById('fill').style.width=stamina+'%';
+ if(capivara.position.y<fogY){alert('A NÉVOA PEGOU A CAPIVARA! 🦫💨'); location.reload()} if(capivara.position.y>82){alert('TOPO! A CAPIVARA ZEROU O PEAK! 🏆🦫'); location.reload()}
 }
-function loop(){ requestAnimationFrame(loop); update(); controls.update(); ren.render(scene,cam); } loop();
+(function animate(){requestAnimationFrame(animate); update(); controls.update(); ren.render(scene,cam);})();
 addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); ren.setSize(innerWidth,innerHeight)});
 </script>
 </body>
