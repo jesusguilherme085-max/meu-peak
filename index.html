@@ -3,104 +3,91 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PEAK - Inspired Climb</title>
+<title>PEAK - Boneco Climb</title>
 <style>
-  body{margin:0;background:#87ceeb;font-family:Arial;overflow:hidden;touch-action:none}
-  canvas{display:block;margin:0 auto;background:linear-gradient(#87ceeb,#e0f6ff 60%,#8d6e63)}
-  #ui{position:absolute;top:10px;left:10px;color:#fff;text-shadow:1px 1px 2px #000}
-  #stamina{width:200px;height:18px;background:#333;border-radius:9px;overflow:hidden}
-  #staminaBar{height:100%;width:100%;background:linear-gradient(90deg,#4caf50,#8bc34a);transition:width .1s}
-  #msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.7);color:#fff;padding:20px 30px;border-radius:12px;text-align:center;display:none}
+ body{margin:0;background:#87ceeb;overflow:hidden;font-family:Arial;touch-action:none}
+ canvas{display:block;width:100%;height:100vh}
+ #ui{position:absolute;top:10px;left:10px;color:#fff;text-shadow:1px 1px 3px #000}
+ #bar{width:180px;height:14px;background:#222;border-radius:10px;overflow:hidden;border:2px solid #fff}
+ #fill{height:100%;width:100%;background:linear-gradient(90deg,#4caf50,#cddc39)}
 </style>
 </head>
 <body>
 <div id="ui">
-  <div>ALTURA: <span id="h">0</span>m</div>
-  <div id="stamina"><div id="staminaBar"></div></div>
-  <small>CLIQUE/TOQUE na pedra pra escalar</small>
+ <div>🏔️ <span id="alt">0</span>m</div>
+ <div id="bar"><div id="fill"></div></div>
 </div>
-<div id="msg"></div>
 <canvas id="c"></canvas>
 <script>
 const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
-canvas.width=400;canvas.height=window.innerHeight;
-let W=400,H=canvas.height;
-let stamina=100,maxStamina=100,player={x:200,y:H-80,vx:0,vy:0,onHold:true},holds=[],fogY=H+200,camY=0,score=0,gameOver=false;
+function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight}
+resize(); window.onresize=resize;
+let W=()=>canvas.width,H=()=>canvas.height;
+let stamina=100, score=0, camY=0, fogY=800, gameOver=false;
+let player={x:200,y:600,vx:0,vy:0,onHold:true,armX:0,armY:0};
+let holds=[];
+for(let i=0;i<100;i++){ holds.push({x:80+Math.random()*(W()-160), y:600-i*70-Math.random()*30, r:20+Math.random()*14}) }
+holds.push({x:200,y:650,r:35}); holds.push({x:W()/2,y:-6500,r:50});
 
-function genHolds(){
- holds=[];
- for(let i=0;i<80;i++){
-   holds.push({x: 50+Math.random()*300, y: H-100 - i*65 - Math.random()*30, r: 18+Math.random()*12})
- }
- holds.push({x:200,y:H-60,r:30}); // inicio
- holds.push({x:200,y:-4000,r:40}); // topo
-}
-genHolds();
-
-function closestHold(mx,my){
- let best=null,bd=1e9;
- for(let h of holds){
-   let d=Math.hypot(h.x-mx,h.y-my);
-   if(d<120 && d<bd){bd=d;best=h}
- }
+function getHold(mx,my){
+ let best=null,dmin=150;
+ for(let h of holds){ let d=Math.hypot(h.x-mx,h.y-my); if(d<dmin){dmin=d;best=h} }
  return best;
 }
-
 canvas.addEventListener('pointerdown',e=>{
  if(gameOver)return;
- let rect=canvas.getBoundingClientRect();
- let mx=(e.clientX-rect.left)*(W/rect.width);
- let my=(e.clientY-rect.top)*(H/rect.height)+camY;
- let h=closestHold(mx,my);
- if(!h || stamina<5)return;
- let dist=Math.hypot(h.x-player.x,h.y-player.y);
- if(dist>160)return;
- player.vx=(h.x-player.x)*0.15;
- player.vy=(h.y-player.y)*0.15 -2;
- player.onHold=false;
- stamina-= 12 + dist*0.1;
+ let mx=e.clientX, my=e.clientY+camY;
+ let h=getHold(mx,my); if(!h||stamina<8)return;
+ let dist=Math.hypot(h.x-player.x,h.y-player.y); if(dist>220)return;
+ player.vx=(h.x-player.x)*0.18; player.vy=(h.y-player.y)*0.18-3;
+ player.onHold=false; player.armX=h.x; player.armY=h.y; stamina-=10+dist*0.08;
 });
 
 function update(){
  if(gameOver)return;
- if(!player.onHold){ player.vy+=0.35; player.x+=player.vx; player.y+=player.vy; player.vx*=0.98; player.vy*=0.98; }
- // colisão com holds
+ if(!player.onHold){ player.vy+=0.4; player.x+=player.vx; player.y+=player.vy; player.vx*=0.97 }
  for(let h of holds){
-   let d=Math.hypot(player.x-h.x,player.y-h.y);
-   if(d < h.r+10 && player.vy>0){ player.x=h.x; player.y=h.y-15; player.vx=0; player.vy=0; player.onHold=true; if(stamina<maxStamina) stamina+=0.6; break; }
+   if(Math.hypot(player.x-h.x,player.y-h.y)<h.r+14 && player.vy>0){
+     player.x=h.x; player.y=h.y-28; player.vx=0; player.vy=0; player.onHold=true;
+     if(stamina<100) stamina+=0.7;
+   }
  }
- // camera
- camY += (player.y - H*0.6 - camY)*0.05;
- score=Math.max(score, Math.floor((H-player.y)/10));
- document.getElementById('h').innerText=score;
- document.getElementById('staminaBar').style.width=stamina+'%';
- // névoa
- fogY-=0.8;
- if(player.y > fogY-10){ endGame('A NÉVOA TE PEGOU!'); }
- if(player.y < -3950){ endGame('VOCÊ CHEGOU NO TOPO! ⛰️'); }
- if(stamina<=0 && !player.onHold){ player.vy+=0.5; }
- if(player.y > camY+H+100) endGame('VOCÊ CAIU!');
+ camY+=(player.y-H()*0.65-camY)*0.06;
+ fogY-=0.9; score=Math.max(score, Math.floor((600-player.y)/10));
+ document.getElementById('alt').innerText=score;
+ document.getElementById('fill').style.width=stamina+'%';
+ if(player.y>fogY){end('A NÉVOA TE PEGOU!')} if(player.y<-6450){end('TOPO! VOCÊ ZEROU!')} if(stamina<=0&&!player.onHold){player.vy+=0.3}
 }
-
+function drawBoneco(x,y){
+ // mochila
+ ctx.fillStyle='#ffca28'; ctx.fillRect(x-8,y-10,16,20);
+ // corpo
+ ctx.fillStyle='#3949ab'; ctx.fillRect(x-8,y-20,16,24);
+ // cabeça
+ ctx.fillStyle='#ffcc80'; ctx.beginPath(); ctx.arc(x,y-32,12,0,Math.PI*2); ctx.fill();
+ // braços
+ ctx.strokeStyle='#ffcc80'; ctx.lineWidth=5; ctx.lineCap='round';
+ ctx.beginPath(); ctx.moveTo(x-8,y-18); ctx.lineTo(player.onHold?x-12:player.armX, player.onHold?y-10:player.armY); ctx.stroke();
+ ctx.beginPath(); ctx.moveTo(x+8,y-18); ctx.lineTo(player.onHold?x+12:player.armX, player.onHold?y-10:player.armY); ctx.stroke();
+ // pernas
+ ctx.strokeStyle='#212121'; ctx.lineWidth=6;
+ ctx.beginPath(); ctx.moveTo(x-4,y+4); ctx.lineTo(x-10,y+22); ctx.stroke();
+ ctx.beginPath(); ctx.moveTo(x+4,y+4); ctx.lineTo(x+10,y+22); ctx.stroke();
+}
 function draw(){
- ctx.clearRect(0,0,W,H);
+ ctx.clearRect(0,0,W(),H());
  ctx.save(); ctx.translate(0,-camY);
- // montanha fundo
- ctx.fillStyle='#a1887f'; ctx.beginPath(); ctx.moveTo(0,H); ctx.lineTo(0,-4000); ctx.lineTo(100,-4000); ctx.lineTo(150,-3000); ctx.lineTo(250,-2000); ctx.lineTo(300,-1000); ctx.lineTo(400,-4000); ctx.lineTo(400,H); ctx.fill();
- // holds
- for(let h of holds){ ctx.fillStyle= h.r>35?'#ffd54f':'#5d4037'; ctx.beginPath(); ctx.arc(h.x,h.y,h.r,0,Math.PI*2); ctx.fill(); ctx.fillStyle='rgba(0,0,0,.2)'; ctx.beginPath(); ctx.arc(h.x+4,h.y+4,h.r*0.6,0,Math.PI*2); ctx.fill(); }
- // player
- ctx.fillStyle='#ff7043'; ctx.beginPath(); ctx.arc(player.x,player.y,12,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(player.x-3,player.y-2,3,0,Math.PI*2); ctx.fill();
- // névoa
- ctx.fillStyle='rgba(200,200,220,0.85)'; ctx.fillRect(0,fogY, W, H*2);
+ ctx.fillStyle='#a1887f'; ctx.fillRect(0,-7000,W(),8000);
+ holds.forEach(h=>{
+   ctx.fillStyle=h.r>35?'#ffecb3':'#5d4037'; ctx.beginPath(); ctx.arc(h.x,h.y,h.r,0,Math.PI*2); ctx.fill();
+   ctx.fillStyle='rgba(0,0,0,.15)'; ctx.beginPath(); ctx.arc(h.x+3,h.y+3,h.r*0.7,0,Math.PI*2); ctx.fill();
+ });
+ drawBoneco(player.x,player.y);
+ ctx.fillStyle='rgba(220,220,230,0.88)'; ctx.fillRect(0,fogY,W(),5000);
  ctx.restore();
 }
-
-function endGame(t){ gameOver=true; let m=document.getElementById('msg'); m.innerHTML=`<h2>${t}</h2><p>Altura: ${score}m</p><button onclick="location.reload()" style="padding:10px 20px;border-radius:8px;border:0;background:#4caf50;color:#fff;font-weight:bold">JOGAR DE NOVO</button>`; m.style.display='block'; }
-
-function loop(){ update(); draw(); requestAnimationFrame(loop); }
-loop();
-window.addEventListener('resize',()=>{H=window.innerHeight; canvas.height=H});
+function end(t){gameOver=true; ctx.fillStyle='rgba(0,0,0,.7)'; ctx.fillRect(0,0,W(),H()); ctx.fillStyle='#fff'; ctx.font='bold 26px Arial'; ctx.textAlign='center'; ctx.fillText(t,W()/2,H()/2); ctx.font='16px Arial'; ctx.fillText('Toque para jogar de novo',W()/2,H()/2+40); canvas.onclick=()=>location.reload()}
+(function loop(){update();draw();requestAnimationFrame(loop)})();
 </script>
 </body>
 </html>
